@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Calendrier Lune</title>
+<meta name="theme-color" content="#b0305a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lune">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%23b0305a'/%3E%3Ccircle cx='50' cy='50' r='26' fill='none' stroke='%23fff' stroke-width='9' stroke-dasharray='120 200' stroke-linecap='round' transform='rotate(-90 50 50)'/%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#f7f3f5; --surface:#ffffff; --ink:#2a1f27; --muted:#7a6a74; --line:#e7dce2;
+  --flow:#b0305a; --flow-soft:#f6d9e2; --pred:#d77b97; --fertile:#2e8a83; --fertile-soft:#d6efec; --ovu:#1f6f69; --wa:#1f8f4e;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",ui-sans-serif,system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#1a1418; --surface:#241c22; --ink:#f3e9ef; --muted:#a8969f; --line:#3a2e36;
+  --flow:#ec6f94; --flow-soft:#4a2433; --pred:#c66a87; --fertile:#5fc4ba; --fertile-soft:#1d3a38; --ovu:#8be0d6; --wa:#4cc27f; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding-block:calc(20px + env(safe-area-inset-top,0px)) calc(48px + env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+h1,h2{font-family:var(--display);margin:0;text-wrap:balance}
+h1{font-size:1.6rem;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.1rem;font-weight:700}
+.eyebrow{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted)}
+.muted{color:var(--muted)}
+section{display:flex;flex-direction:column;gap:12px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+button,.btn{font:inherit;cursor:pointer;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:8px 14px;text-decoration:none;display:inline-block}
+button:focus-visible,.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--flow);outline-offset:2px}
+button.primary{background:var(--flow);border-color:var(--flow);color:var(--surface);font-weight:700}
+button.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+.wa{background:var(--wa);border-color:var(--wa);color:var(--surface);font-weight:700}
+.hero{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center}
+@media (max-width:420px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}}
+.ring{position:relative;width:150px;height:150px}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .big{font-family:var(--display);font-size:2.6rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.phase{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.85rem;font-weight:700;background:var(--flow-soft);color:var(--flow)}
+.phase.fertile{background:var(--fertile-soft);color:var(--fertile)}
+.phase.neutral{background:var(--line);color:var(--ink)}
+.next{font-family:var(--display);font-size:1.25rem;font-weight:500;margin:6px 0 2px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.hero .actions{margin-top:10px}
+@media (max-width:420px){.hero .actions{justify-content:center}}
+.calhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.calhead h2{text-transform:capitalize}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow{font-size:.72rem;text-align:center;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding-bottom:4px}
+.day{position:relative;aspect-ratio:1;max-width:100%;border:1px solid transparent;border-radius:10px;background:transparent;padding:0;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;font-size:.95rem}
+.day.out{visibility:hidden}
+.day.period{background:var(--flow);color:var(--surface);font-weight:700}
+.day.pred{border:1.5px dashed var(--pred);color:var(--pred)}
+.day.fertile{background:var(--fertile-soft);color:var(--fertile)}
+.day.ovu{background:var(--fertile-soft);color:var(--ovu);font-weight:700;border:1.5px solid var(--ovu)}
+.day.today{box-shadow:inset 0 0 0 2px var(--ink)}
+.day.sel{outline:2px solid var(--flow);outline-offset:1px}
+.day .dot{position:absolute;bottom:5px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.8}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:12px;height:12px;border-radius:4px;display:inline-block}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{padding:6px 12px;font-size:.88rem}
+.chip[aria-pressed="true"]{background:var(--flow-soft);border-color:var(--flow);color:var(--flow);font-weight:700}
+.lbl{font-size:.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+textarea,input[type=text],input[type=tel],input[type=number]{font:inherit;width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+textarea{min-height:64px;resize:vertical}
+.field{display:flex;flex-direction:column;gap:6px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row2 > *{min-width:0}
+.hist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.hist li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.hist li:last-child{border-bottom:0}
+.hist .d{font-weight:700}
+.hist .m{font-size:.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.stats b{display:block;font-family:var(--display);font-size:1.5rem;font-variant-numeric:tabular-nums}
+.stats span{font-size:.78rem;color:var(--muted)}
+.note{font-size:.8rem;color:var(--muted)}
+.banner{padding:10px 14px;border-radius:10px;background:var(--flow-soft);color:var(--ink);font-size:.9rem}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:.9rem;z-index:5}
+details summary{cursor:pointer;font-family:var(--display);font-weight:700}
+.sep{border:0;border-top:1px solid var(--line);margin:4px 0}
+@media (prefers-reduced-motion:no-preference){.ring circle.p{transition:stroke-dashoffset .6s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Suivi du cycle</div>
+    <h1 id="titre">Calendrier Lune</h1>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <section class="panel hero" aria-live="polite">
+    <div class="ring">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="44" fill="none" stroke="var(--line)" stroke-width="8"/>
+        <circle id="ringP" class="p" cx="50" cy="50" r="44" fill="none" stroke="var(--flow)" stroke-width="8" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="276.46"/>
+      </svg>
+      <div class="c"><span class="eyebrow">Jour</span><span class="big" id="jour">–</span><span class="muted" id="sur" style="font-size:.8rem"></span></div>
+    </div>
+    <div>
+      <span class="phase neutral" id="phase">Aucun cycle noté</span>
+      <div class="next" id="next">Note le premier jour des dernières règles pour commencer.</div>
+      <div class="muted" id="sub"></div>
+      <div class="actions" id="mainActions"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="calhead">
+      <button class="ghost" id="prev" aria-label="Mois précédent">‹</button>
+      <h2 id="mois"></h2>
+      <button class="ghost" id="nextM" aria-label="Mois suivant">›</button>
+    </div>
+    <div class="grid" id="cal"></div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--flow)"></i>Règles</span>
+      <span><i class="sw" style="border:1.5px dashed var(--pred)"></i>Règles prévues</span>
+      <span><i class="sw" style="background:var(--fertile-soft)"></i>Fenêtre fertile</span>
+      <span><i class="sw" style="border:1.5px solid var(--ovu);background:var(--fertile-soft)"></i>Ovulation estimée</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div>
+      <div class="eyebrow">Journal du jour</div>
+      <h2 id="jDate"></h2>
+      <div class="muted" id="jStatus"></div>
+    </div>
+    <div class="actions" id="jActions"></div>
+    <div class="field"><span class="lbl">Flux</span><div class="chips" id="cFlux"></div></div>
+    <div class="field"><span class="lbl">Symptômes</span><div class="chips" id="cSympt"></div></div>
+    <div class="field"><span class="lbl">Humeur</span><div class="chips" id="cHumeur"></div></div>
+    <div class="field"><label class="lbl" for="jNote">Note</label><textarea id="jNote" placeholder="Ex. besoin de chocolat, bouillotte ce soir…"></textarea></div>
+    <div class="actions"><button class="primary" id="jSave">Enregistrer le journal</button><button class="ghost" id="jClear">Effacer ce jour</button></div>
+  </section>
+
+  <section class="panel">
+    <h2>Statistiques</h2>
+    <div class="stats">
+      <div><b id="sCycle">–</b><span>jours de cycle en moyenne</span></div>
+      <div><b id="sRegles">–</b><span>jours de règles en moyenne</span></div>
+      <div><b id="sNb">0</b><span>cycles notés</span></div>
+    </div>
+    <h2 style="margin-top:6px">Historique</h2>
+    <ul class="hist" id="hist"></ul>
+  </section>
+
+  <details class="panel">
+    <summary>Réglages et sauvegarde</summary>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:12px">
+      <div class="field"><label class="lbl" for="rPrenom">Ton prénom</label><input type="text" id="rPrenom" placeholder="Ex. Léa"></div>
+      <div class="row2">
+        <div class="field"><label class="lbl" for="rContact">Envoyer à (prénom)</label><input type="text" id="rContact" value="Samuel"></div>
+        <div class="field"><label class="lbl" for="rTel">Son numéro WhatsApp</label><input type="tel" id="rTel" placeholder="0692 12 34 56"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label class="lbl" for="rCycle">Durée de cycle par défaut</label><input type="number" id="rCycle" min="18" max="50" value="28"></div>
+        <div class="field"><label class="lbl" for="rRegles">Durée des règles par défaut</label><input type="number" id="rRegles" min="1" max="12" value="5"></div>
+      </div>
+      <div class="note">Les durées par défaut servent tant qu'il y a moins de deux cycles notés. Ensuite, les moyennes des 6 derniers cycles prennent le relais.</div>
+      <div><button class="primary" id="rSave">Enregistrer les réglages</button></div>
+      <hr class="sep">
+      <div class="note">Tes données restent uniquement sur ce téléphone. Fais une sauvegarde de temps en temps, ou avant de changer de téléphone ou de vider le navigateur.</div>
+      <div class="actions">
+        <button id="exportBtn">Sauvegarder (fichier)</button>
+        <button id="importBtn">Restaurer une sauvegarde</button>
+        <input type="file" id="importFile" accept="application/json,.json" hidden>
+      </div>
+    </div>
+  </details>
+
+  <p class="note">Les dates prévues, la fenêtre fertile et l'ovulation sont des estimations calculées à partir des cycles passés. Elles ne remplacent ni un avis médical ni une contraception.</p>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function(){
+  var MOIS=["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+  var MOIS_C=["janv.","févr.","mars","avr.","mai","juin","juil.","août","sept.","oct.","nov.","déc."];
+  var JOURS=["lun","mar","mer","jeu","ven","sam","dim"];
+  var FLUX=["Léger","Moyen","Abondant","Spotting"];
+  var SYMPT=["Crampes","Maux de tête","Fatigue","Ballonnements","Seins sensibles","Mal de dos","Acné","Fringales","Nausées"];
+  var HUMEUR=["Bien","Calme","Irritable","Triste","Anxieuse","Énergique"];
+  var KEY="calendrierLune.v1";
+  var DATE_RE=/^\d{4}-\d{2}-\d{2}$/;
+
+  function $(id){return document.getElementById(id);}
+  function dn(s){var p=s.split("-");return Math.round(Date.UTC(+p[0],+p[1]-1,+p[2])/864e5);}
+  function ds(n){return new Date(n*864e5).toISOString().slice(0,10);}
+  function todayN(){var d=new Date();return Math.round(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/864e5);}
+  function joli(n){var d=new Date(n*864e5);return d.getUTCDate()+" "+MOIS[d.getUTCMonth()];}
+  function court(n){var d=new Date(n*864e5);return d.getUTCDate()+" "+MOIS_C[d.getUTCMonth()];}
+  function joliLong(n){var d=new Date(n*864e5);var j=["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"][d.getUTCDay()];return j+" "+d.getUTCDate()+" "+MOIS[d.getUTCMonth()]+" "+d.getUTCFullYear();}
+  function mean(a){return a.reduce(function(s,x){return s+x;},0)/a.length;}
+
+  /* ---------- Stockage local ---------- */
+  function vide(){return {periodes:[],jours:{},reglages:{prenom:"",contact:"Samuel",tel:"",dureeCycle:28,dureeRegles:5}};}
+  function nettoyer(o){
+    var d=vide();if(!o||typeof o!=="object")return d;
+    if(Array.isArray(o.periodes))d.periodes=o.periodes.filter(function(p){return p&&DATE_RE.test(p.start)&&(!p.end||DATE_RE.test(p.end));}).map(function(p){return {start:p.start,end:p.end||null};});
+    if(o.jours&&typeof o.jours==="object")Object.keys(o.jours).forEach(function(k){var j=o.jours[k];if(DATE_RE.test(k)&&j)d.jours[k]={flux:String(j.flux||""),symptomes:Array.isArray(j.symptomes)?j.symptomes.map(String):[],humeur:String(j.humeur||""),note:String(j.note||"")};});
+    if(o.reglages){var r=o.reglages;d.reglages={prenom:String(r.prenom||""),contact:String(r.contact||"Samuel"),tel:String(r.tel||""),dureeCycle:+r.dureeCycle||28,dureeRegles:+r.dureeRegles||5};}
+    return d;
+  }
+  var stockageOk=true;
+  function charger(){try{var raw=localStorage.getItem(KEY);return raw?nettoyer(JSON.parse(raw)):vide();}catch(e){stockageOk=false;return vide();}}
+  function sauver(){try{localStorage.setItem(KEY,JSON.stringify(data));stockageOk=true;}catch(e){stockageOk=false;}banner(stockageOk?"":"Impossible d'enregistrer sur ce téléphone (navigation privée ?). Ouvre la page dans un onglet normal.");return stockageOk;}
+
+  var data=charger();
+  var state={sel:todayN(),vue:null,draft:null};
+  var t=new Date();state.vue={y:t.getFullYear(),m:t.getMonth()};
+
+  function toast(msg){var el=$("toast");el.textContent=msg;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(function(){el.hidden=true;},2200);}
+  function banner(msg){var b=$("banner");if(msg){b.textContent=msg;b.hidden=false;}else b.hidden=true;}
+  function commit(msg){if(sauver()&&msg)toast(msg);render();}
+
+  /* ---------- Calculs ---------- */
+  function calc(){
+    var P=data.periodes.slice().sort(function(a,b){return dn(a.start)-dn(b.start);});
+    var R=data.reglages, today=todayN();
+    var gaps=[];for(var i=1;i<P.length;i++){var g=dn(P[i].start)-dn(P[i-1].start);if(g>=18&&g<=50)gaps.push(g);}
+    var cyc=gaps.length?Math.round(mean(gaps.slice(-6))):(+R.dureeCycle||28);
+    var lens=P.filter(function(p){return p.end;}).map(function(p){return dn(p.end)-dn(p.start)+1;}).filter(function(l){return l>=1&&l<=12;});
+    var len=lens.length?Math.round(mean(lens.slice(-6))):(+R.dureeRegles||5);
+    var res={P:P,cyc:cyc,len:len,nbCycles:gaps.length,map:{},today:today};
+    var last=P[P.length-1];
+    P.forEach(function(p){
+      var s=dn(p.start),e;
+      if(p.end)e=dn(p.end);
+      else if(p===last&&today-s<10)e=Math.max(s,today);
+      else e=s+len-1;
+      for(var d=s;d<=e;d++)res.map[d]="period";
+    });
+    if(!last)return res;
+    var s0=dn(last.start);
+    res.last=last;res.open=!last.end&&today-s0<10;
+    res.cycleDay=today-s0+1;
+    var next=s0+cyc;res.next=next;res.late=today>next&&!res.open?today-next:0;
+    for(var k=0;k<4;k++){
+      var st=next+k*cyc, ov=st-14;
+      for(var f=ov-5;f<=ov+1;f++)if(!res.map[f])res.map[f]=(f===ov?"ovu":"fertile");
+      if(k<3)for(var j=0;j<len;j++){var dd=st+j;if(!res.map[dd]&&dd>=today)res.map[dd]="pred";}
+    }
+    res.ov=next-14;
+    var ty=res.map[today];
+    res.phase=(res.open||ty==="period")?"Règles · jour "+res.cycleDay:ty==="ovu"?"Ovulation estimée":ty==="fertile"?"Fenêtre fertile":today<res.ov?"Phase folliculaire":"Phase lutéale";
+    res.phaseClass=(res.open||ty==="period")?"phase":(ty==="ovu"||ty==="fertile")?"phase fertile":"phase neutral";
+    return res;
+  }
+
+  /* ---------- WhatsApp ---------- */
+  function resume(c){
+    var nom=data.reglages.prenom||"moi";
+    var l=["Calendrier Lune de "+nom];
+    if(!c.last){l.push("Pas encore de cycle noté.");return l.join("\n");}
+    l.push("Aujourd'hui : jour "+c.cycleDay+" du cycle ("+c.phase.toLowerCase()+")");
+    if(c.open)l.push("Règles en cours depuis le "+court(dn(c.last.start)));
+    else if(c.late)l.push("Règles en retard de "+c.late+" j (attendues le "+court(c.next)+")");
+    else {var dl=c.next-c.today;l.push("Prochaines règles : vers le "+court(c.next)+(dl>0?" (dans "+dl+" j)":" (aujourd'hui)"));}
+    if(!c.open&&c.ov>c.today)l.push("Fenêtre fertile estimée : "+court(c.ov-5)+" au "+court(c.ov+1));
+    var j=data.jours[ds(c.today)];
+    if(j){var bits=[];if(j.flux)bits.push("flux "+j.flux.toLowerCase());if(j.symptomes.length)bits.push(j.symptomes.join(", ").toLowerCase());if(j.humeur)bits.push("humeur : "+j.humeur.toLowerCase());if(bits.length)l.push("Aujourd'hui : "+bits.join(" · "));}
+    return l.join("\n");
+  }
+  function lienWA(c){
+    var tel=(data.reglages.tel||"").replace(/[^\d+]/g,"");
+    if(tel.charAt(0)==="+")tel=tel.slice(1);
+    else if(/^0\d{9}$/.test(tel))tel=(/^0(69[23]|639|262)/.test(tel)?"262":"33")+tel.slice(1);
+    return "https://wa.me/"+tel+"?text="+encodeURIComponent(resume(c));
+  }
+
+  /* ---------- Rendu ---------- */
+  function render(){
+    var c=calc(), today=c.today, R=data.reglages;
+    $("titre").textContent=R.prenom?"Le calendrier de "+R.prenom:"Calendrier Lune";
+    var ph=$("phase"),acts=$("mainActions");acts.innerHTML="";
+    if(!c.last){
+      $("jour").textContent="–";$("sur").textContent="";$("ringP").setAttribute("stroke-dashoffset","276.46");
+      ph.className="phase neutral";ph.textContent="Aucun cycle noté";
+      $("next").textContent="Note le premier jour des dernières règles pour commencer.";$("sub").textContent="";
+    }else{
+      $("jour").textContent=c.cycleDay;$("sur").textContent="sur ~"+c.cyc;
+      $("ringP").setAttribute("stroke-dashoffset",(276.46*(1-Math.min(c.cycleDay/c.cyc,1))).toFixed(1));
+      ph.className=c.phaseClass;ph.textContent=c.phase;
+      var dLeft=c.next-today;
+      if(c.late){$("next").textContent="Retard de "+c.late+" jour"+(c.late>1?"s":"");$("sub").textContent="Règles attendues le "+joli(c.next)+".";}
+      else if(dLeft===0){$("next").textContent="Règles prévues aujourd'hui";$("sub").textContent="";}
+      else {$("next").textContent="Prochaines règles dans "+dLeft+" jour"+(dLeft>1?"s":"");$("sub").textContent="Vers le "+joli(c.next)+" · ovulation estimée le "+joli(c.ov);}
+    }
+    var b=document.createElement("button");b.className="primary";
+    if(c.open){b.textContent="Règles terminées aujourd'hui";b.onclick=function(){finir(today);};}
+    else{b.textContent="Règles commencées aujourd'hui";b.onclick=function(){commencer(today);};}
+    acts.appendChild(b);
+    var wa=document.createElement("a");wa.className="btn wa";wa.target="_blank";wa.rel="noopener";
+    wa.textContent="Envoyer à "+(R.contact||"Samuel");wa.href=lienWA(c);
+    acts.appendChild(wa);
+
+    var v=state.vue;$("mois").textContent=MOIS[v.m]+" "+v.y;
+    var cal=$("cal");cal.innerHTML="";
+    JOURS.forEach(function(j){var e=document.createElement("div");e.className="dow";e.textContent=j;cal.appendChild(e);});
+    var first=Math.round(Date.UTC(v.y,v.m,1)/864e5), dim=new Date(Date.UTC(v.y,v.m+1,0)).getUTCDate();
+    var off=(new Date(first*864e5).getUTCDay()+6)%7;
+    for(var i=0;i<off;i++){var o=document.createElement("div");o.className="day out";cal.appendChild(o);}
+    for(var d=0;d<dim;d++){
+      (function(n){
+        var btn=document.createElement("button");btn.className="day";
+        var ty=c.map[n];if(ty)btn.classList.add(ty);
+        if(n===today)btn.classList.add("today");
+        if(n===state.sel)btn.classList.add("sel");
+        btn.textContent=d+1;
+        if(data.jours[ds(n)]){var dot=document.createElement("i");dot.className="dot";btn.appendChild(dot);}
+        btn.setAttribute("aria-label",joliLong(n)+(ty?", "+({period:"règles",pred:"règles prévues",fertile:"fenêtre fertile",ovu:"ovulation estimée"})[ty]:""));
+        btn.onclick=function(){state.sel=n;state.draft=null;render();};
+        cal.appendChild(btn);
+      })(first+d);
+    }
+    renderJournal(c);
+    $("sCycle").textContent=c.last?c.cyc:"–";$("sRegles").textContent=c.last?c.len:"–";$("sNb").textContent=c.nbCycles;
+    var h=$("hist");h.innerHTML="";
+    var rev=c.P.slice().reverse();
+    if(!rev.length){var li0=document.createElement("li");li0.innerHTML='<span class="muted">Aucune période notée pour l’instant. Utilise le bouton en haut ou choisis un jour dans le calendrier.</span>';h.appendChild(li0);}
+    rev.slice(0,12).forEach(function(p,idx){
+      var li=document.createElement("li");
+      var s=dn(p.start), nxt=idx>0?rev[idx-1]:null;
+      var info=(p.end?(dn(p.end)-s+1)+" j de règles":"en cours")+(nxt?" · cycle de "+(dn(nxt.start)-s)+" j":"");
+      li.innerHTML='<div><div class="d"></div><div class="m"></div></div>';
+      li.querySelector(".d").textContent=joliLong(s);li.querySelector(".m").textContent=info;
+      var del=document.createElement("button");del.className="ghost";del.textContent="Supprimer";
+      del.onclick=function(){
+        if(del.dataset.c){data.periodes=data.periodes.filter(function(x){return x.start!==p.start;});commit("Période supprimée");}
+        else{del.dataset.c="1";del.textContent="Confirmer ?";setTimeout(function(){del.dataset.c="";del.textContent="Supprimer";},3000);}
+      };
+      li.appendChild(del);
+      h.appendChild(li);
+    });
+    if(document.activeElement&&/^r[A-Z]/.test(document.activeElement.id||""))return;
+    $("rPrenom").value=R.prenom;$("rContact").value=R.contact;$("rTel").value=R.tel;$("rCycle").value=R.dureeCycle;$("rRegles").value=R.dureeRegles;
+  }
+
+  function renderJournal(c){
+    var n=state.sel,key=ds(n),saved=data.jours[key]||{};
+    if(!state.draft||state.draft.key!==key)state.draft={key:key,flux:saved.flux||"",sympt:(saved.symptomes||[]).slice(),humeur:saved.humeur||"",note:saved.note||""};
+    var dr=state.draft;
+    $("jDate").textContent=joliLong(n)+(n===c.today?" · aujourd'hui":"");
+    var ty=c.map[n];
+    $("jStatus").textContent=ty==="period"?"Jour de règles":ty==="pred"?"Règles prévues":ty==="ovu"?"Ovulation estimée":ty==="fertile"?"Fenêtre fertile estimée":"";
+    var ja=$("jActions");ja.innerHTML="";
+    var startHere=c.P.some(function(p){return p.start===key;});
+    if(!startHere&&ty!=="period"){var b=document.createElement("button");b.textContent="Début des règles ce jour";b.onclick=function(){commencer(n);};ja.appendChild(b);}
+    var openBefore=c.P.filter(function(p){return dn(p.start)<=n&&n-dn(p.start)<12;}).pop();
+    if(openBefore&&(!openBefore.end||dn(openBefore.end)!==n)){var b2=document.createElement("button");b2.textContent="Fin des règles ce jour";b2.onclick=function(){finir(n,openBefore);};ja.appendChild(b2);}
+    chips("cFlux",FLUX,function(x){return dr.flux===x;},function(x){dr.flux=dr.flux===x?"":x;});
+    chips("cSympt",SYMPT,function(x){return dr.sympt.indexOf(x)>=0;},function(x){var i=dr.sympt.indexOf(x);if(i>=0)dr.sympt.splice(i,1);else dr.sympt.push(x);});
+    chips("cHumeur",HUMEUR,function(x){return dr.humeur===x;},function(x){dr.humeur=dr.humeur===x?"":x;});
+    if(document.activeElement!==$("jNote"))$("jNote").value=dr.note;
+  }
+  function chips(id,list,on,toggle){
+    var box=$(id);box.innerHTML="";
+    list.forEach(function(x){var b=document.createElement("button");b.className="chip";b.textContent=x;b.setAttribute("aria-pressed",on(x)?"true":"false");
+      b.onclick=function(){toggle(x);b.setAttribute("aria-pressed",on(x)?"true":"false");};box.appendChild(b);});
+  }
+
+  /* ---------- Actions ---------- */
+  function setPeriode(start,end){
+    var p=data.periodes.filter(function(x){return x.start===start;})[0];
+    if(p)p.end=end;else data.periodes.push({start:start,end:end});
+  }
+  function commencer(n){
+    var c=calc(),key=ds(n);
+    var prevOpen=c.P.filter(function(p){return !p.end&&dn(p.start)<n;}).pop();
+    if(prevOpen)setPeriode(prevOpen.start,ds(Math.min(dn(prevOpen.start)+c.len-1,n-1)));
+    setPeriode(key,null);
+    commit("Début des règles noté");
+  }
+  function finir(n,p){
+    var c=calc();p=p||c.last;if(!p)return;
+    if(n<dn(p.start)){toast("La fin doit être après le début.");return;}
+    setPeriode(p.start,ds(n));
+    commit("Fin des règles notée");
+  }
+  $("jNote").addEventListener("input",function(){if(state.draft)state.draft.note=this.value;});
+  $("jSave").onclick=function(){
+    var dr=state.draft;if(!dr)return;
+    var note=dr.note.trim();
+    if(!dr.flux&&!dr.sympt.length&&!dr.humeur&&!note){delete data.jours[dr.key];commit("Journal vidé");return;}
+    data.jours[dr.key]={flux:dr.flux,symptomes:dr.sympt.slice(),humeur:dr.humeur,note:note};
+    commit("Journal enregistré");
+  };
+  $("jClear").onclick=function(){if(!state.draft)return;delete data.jours[state.draft.key];state.draft=null;commit("Jour effacé");};
+  $("rSave").onclick=function(){
+    data.reglages={
+      prenom:$("rPrenom").value.trim(),
+      contact:$("rContact").value.trim()||"Samuel",
+      tel:$("rTel").value.trim(),
+      dureeCycle:Math.min(50,Math.max(18,parseInt($("rCycle").value,10)||28)),
+      dureeRegles:Math.min(12,Math.max(1,parseInt($("rRegles").value,10)||5))
+    };
+    document.activeElement&&document.activeElement.blur();
+    commit("Réglages enregistrés");
+  };
+  $("prev").onclick=function(){var v=state.vue;v.m--;if(v.m<0){v.m=11;v.y--;}render();};
+  $("nextM").onclick=function(){var v=state.vue;v.m++;if(v.m>11){v.m=0;v.y++;}render();};
+
+  /* ---------- Sauvegarde / restauration ---------- */
+  $("exportBtn").onclick=function(){
+    var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="calendrier-lune-"+ds(todayN())+".json";
+    document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);
+    toast("Sauvegarde téléchargée");
+  };
+  $("importBtn").onclick=function(){$("importFile").click();};
+  $("importFile").onchange=function(){
+    var f=this.files&&this.files[0];if(!f)return;
+    var r=new FileReader();
+    r.onload=function(){
+      try{
+        var d=nettoyer(JSON.parse(r.result));
+        if(!d.periodes.length&&!Object.keys(d.jours).length){toast("Ce fichier ne contient pas de données.");return;}
+        if(!window.confirm("Remplacer les données actuelles par cette sauvegarde ("+d.periodes.length+" périodes) ?"))return;
+        data=d;state.draft=null;commit("Sauvegarde restaurée");
+      }catch(e){toast("Fichier illisible.");}
+    };
+    r.readAsText(f);this.value="";
+  };
+
+  /* ---------- Changement de jour ---------- */
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")render();});
+
+  if(!stockageOk)banner("Le stockage du navigateur est indisponible (navigation privée ?). Ouvre la page dans un onglet normal.");
+  render();
+
+  /* ---------- Mode appli (hors ligne) ---------- */
+  if("serviceWorker" in navigator&&location.protocol==="https:"){
+    window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});
+  }
+})();
+</script>
+</body>
+</html>
