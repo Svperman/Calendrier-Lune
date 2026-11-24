@@ -1,6 +1,6 @@
 // Calendrier Lune — service worker (mode hors ligne)
 // Change VERSION à chaque mise à jour de l'appli pour forcer le rafraîchissement.
-const VERSION = 'lune-v1';
+const VERSION = 'lune-v2';
 const FICHIERS = [
   './',
   './index.html',
@@ -32,7 +32,11 @@ self.addEventListener('fetch', (e) => {
   if (req.mode === 'navigate') {
     e.respondWith(
       fetch(req)
-        .then((res) => { const copie = res.clone(); caches.open(VERSION).then((c) => c.put('./index.html', copie)); return res; })
+        .then((res) => {
+          // On ne garde que la vraie page : jamais une erreur ou une redirection
+          if (res.ok && res.type === 'basic') { const copie = res.clone(); caches.open(VERSION).then((c) => c.put('./index.html', copie)); }
+          return res;
+        })
         .catch(() => caches.match('./index.html'))
     );
     return;

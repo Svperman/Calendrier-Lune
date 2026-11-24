@@ -39,6 +39,8 @@ button,.btn{font:inherit;cursor:pointer;border-radius:999px;border:1px solid var
 button:focus-visible,.btn:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--flow);outline-offset:2px}
 button.primary{background:var(--flow);border-color:var(--flow);color:var(--surface);font-weight:700}
 button.ghost{border-color:transparent;background:transparent;color:var(--muted)}
+button.ghost.danger{color:var(--flow)}
+button:disabled{opacity:.45;cursor:default}
 .wa{background:var(--wa);border-color:var(--wa);color:var(--surface);font-weight:700}
 .hero{display:grid;grid-template-columns:150px 1fr;gap:18px;align-items:center}
 @media (max-width:420px){.hero{grid-template-columns:1fr;justify-items:center;text-align:center}}
@@ -54,7 +56,10 @@ button.ghost{border-color:transparent;background:transparent;color:var(--muted)}
 .hero .actions{margin-top:10px}
 @media (max-width:420px){.hero .actions{justify-content:center}}
 .calhead{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.calhead h2{text-transform:capitalize}
+.calhead h2{text-transform:capitalize;flex:1;text-align:center}
+.calnav{display:flex;align-items:center;gap:4px}
+.todayBtn{font-size:.8rem;padding:4px 10px;color:var(--flow);border-color:var(--flow-soft)}
+.saved{font-size:.8rem;color:var(--muted);min-height:1.2em}
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .dow{font-size:.72rem;text-align:center;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;padding-bottom:4px}
 .day{position:relative;aspect-ratio:1;max-width:100%;border:1px solid transparent;border-radius:10px;background:transparent;padding:0;display:flex;align-items:center;justify-content:center;font-variant-numeric:tabular-nums;font-size:.95rem}
@@ -123,7 +128,7 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
     <div class="calhead">
       <button class="ghost" id="prev" aria-label="Mois précédent">‹</button>
       <h2 id="mois"></h2>
-      <button class="ghost" id="nextM" aria-label="Mois suivant">›</button>
+      <div class="calnav"><button class="todayBtn" id="goToday" hidden>Aujourd'hui</button><button class="ghost" id="nextM" aria-label="Mois suivant">›</button></div>
     </div>
     <div class="grid" id="cal"></div>
     <div class="legend">
@@ -145,7 +150,7 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
     <div class="field"><span class="lbl">Symptômes</span><div class="chips" id="cSympt"></div></div>
     <div class="field"><span class="lbl">Humeur</span><div class="chips" id="cHumeur"></div></div>
     <div class="field"><label class="lbl" for="jNote">Note</label><textarea id="jNote" placeholder="Ex. besoin de chocolat, bouillotte ce soir…"></textarea></div>
-    <div class="actions"><button class="primary" id="jSave">Enregistrer le journal</button><button class="ghost" id="jClear">Effacer ce jour</button></div>
+    <div class="actions" style="align-items:center;justify-content:space-between"><span class="saved" id="jSaved" aria-live="polite"></span><button class="ghost danger" id="jClear">Effacer ce jour</button></div>
   </section>
 
   <section class="panel">
@@ -174,7 +179,7 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
       <div class="note">Les durées par défaut servent tant qu'il y a moins de deux cycles notés. Ensuite, les moyennes des 6 derniers cycles prennent le relais.</div>
       <div><button class="primary" id="rSave">Enregistrer les réglages</button></div>
       <hr class="sep">
-      <div class="note">Tes données restent uniquement sur ce téléphone. Fais une sauvegarde de temps en temps, ou avant de changer de téléphone ou de vider le navigateur.</div>
+      <div class="note">Le journal s'enregistre tout seul à chaque changement. Tes données restent uniquement sur ce téléphone. Fais une sauvegarde de temps en temps, ou avant de changer de téléphone ou de vider le navigateur.</div>
       <div class="actions">
         <button id="exportBtn">Sauvegarder (fichier)</button>
         <button id="importBtn">Restaurer une sauvegarde</button>
@@ -211,7 +216,14 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
   function vide(){return {periodes:[],jours:{},reglages:{prenom:"",contact:"Samuel",tel:"",dureeCycle:28,dureeRegles:5}};}
   function nettoyer(o){
     var d=vide();if(!o||typeof o!=="object")return d;
-    if(Array.isArray(o.periodes))d.periodes=o.periodes.filter(function(p){return p&&DATE_RE.test(p.start)&&(!p.end||DATE_RE.test(p.end));}).map(function(p){return {start:p.start,end:p.end||null};});
+    if(Array.isArray(o.periodes)){
+      var vus={};
+      o.periodes.forEach(function(p){
+        if(!p||!DATE_RE.test(p.start)||vus[p.start])return;
+        var end=(p.end&&DATE_RE.test(p.end)&&p.end>=p.start)?p.end:null;
+        vus[p.start]=1;d.periodes.push({start:p.start,end:end});
+      });
+    }
     if(o.jours&&typeof o.jours==="object")Object.keys(o.jours).forEach(function(k){var j=o.jours[k];if(DATE_RE.test(k)&&j)d.jours[k]={flux:String(j.flux||""),symptomes:Array.isArray(j.symptomes)?j.symptomes.map(String):[],humeur:String(j.humeur||""),note:String(j.note||"")};});
     if(o.reglages){var r=o.reglages;d.reglages={prenom:String(r.prenom||""),contact:String(r.contact||"Samuel"),tel:String(r.tel||""),dureeCycle:+r.dureeCycle||28,dureeRegles:+r.dureeRegles||5};}
     return d;
@@ -279,6 +291,7 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
   function lienWA(c){
     var tel=(data.reglages.tel||"").replace(/[^\d+]/g,"");
     if(tel.charAt(0)==="+")tel=tel.slice(1);
+    else if(tel.slice(0,2)==="00")tel=tel.slice(2);
     else if(/^0\d{9}$/.test(tel))tel=(/^0(69[23]|639|262)/.test(tel)?"262":"33")+tel.slice(1);
     return "https://wa.me/"+tel+"?text="+encodeURIComponent(resume(c));
   }
@@ -297,7 +310,9 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
       $("ringP").setAttribute("stroke-dashoffset",(276.46*(1-Math.min(c.cycleDay/c.cyc,1))).toFixed(1));
       ph.className=c.phaseClass;ph.textContent=c.phase;
       var dLeft=c.next-today;
-      if(c.late){$("next").textContent="Retard de "+c.late+" jour"+(c.late>1?"s":"");$("sub").textContent="Règles attendues le "+joli(c.next)+".";}
+      if(c.open){$("next").textContent="Règles en cours";$("sub").textContent="Depuis le "+joli(dn(c.last.start))+" · fin habituelle vers le "+joli(dn(c.last.start)+c.len-1)+".";}
+      else if(c.late>c.cyc){$("next").textContent="Pas de règles notées depuis le "+joli(dn(c.last.start));$("sub").textContent="Si tu as oublié de les noter, choisis le premier jour dans le calendrier.";}
+      else if(c.late){$("next").textContent="Retard de "+c.late+" jour"+(c.late>1?"s":"");$("sub").textContent="Règles attendues le "+joli(c.next)+".";}
       else if(dLeft===0){$("next").textContent="Règles prévues aujourd'hui";$("sub").textContent="";}
       else {$("next").textContent="Prochaines règles dans "+dLeft+" jour"+(dLeft>1?"s":"");$("sub").textContent="Vers le "+joli(c.next)+" · ovulation estimée le "+joli(c.ov);}
     }
@@ -309,7 +324,8 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
     wa.textContent="Envoyer à "+(R.contact||"Samuel");wa.href=lienWA(c);
     acts.appendChild(wa);
 
-    var v=state.vue;$("mois").textContent=MOIS[v.m]+" "+v.y;
+    var v=state.vue,tj=new Date(today*864e5);$("mois").textContent=MOIS[v.m]+" "+v.y;
+    $("goToday").hidden=(v.y===tj.getUTCFullYear()&&v.m===tj.getUTCMonth()&&state.sel===today);
     var cal=$("cal");cal.innerHTML="";
     JOURS.forEach(function(j){var e=document.createElement("div");e.className="dow";e.textContent=j;cal.appendChild(e);});
     var first=Math.round(Date.UTC(v.y,v.m,1)/864e5), dim=new Date(Date.UTC(v.y,v.m+1,0)).getUTCDate();
@@ -324,7 +340,7 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
         btn.textContent=d+1;
         if(data.jours[ds(n)]){var dot=document.createElement("i");dot.className="dot";btn.appendChild(dot);}
         btn.setAttribute("aria-label",joliLong(n)+(ty?", "+({period:"règles",pred:"règles prévues",fertile:"fenêtre fertile",ovu:"ovulation estimée"})[ty]:""));
-        btn.onclick=function(){state.sel=n;state.draft=null;render();};
+        btn.onclick=function(){if(noteTimer)enregistrerJournal();state.sel=n;state.draft=null;render();};
         cal.appendChild(btn);
       })(first+d);
     }
@@ -359,19 +375,22 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
     var ty=c.map[n];
     $("jStatus").textContent=ty==="period"?"Jour de règles":ty==="pred"?"Règles prévues":ty==="ovu"?"Ovulation estimée":ty==="fertile"?"Fenêtre fertile estimée":"";
     var ja=$("jActions");ja.innerHTML="";
+    var futur=n>c.today;
     var startHere=c.P.some(function(p){return p.start===key;});
-    if(!startHere&&ty!=="period"){var b=document.createElement("button");b.textContent="Début des règles ce jour";b.onclick=function(){commencer(n);};ja.appendChild(b);}
+    if(!futur&&!startHere&&ty!=="period"){var b=document.createElement("button");b.textContent="Début des règles ce jour";b.onclick=function(){commencer(n);};ja.appendChild(b);}
     var openBefore=c.P.filter(function(p){return dn(p.start)<=n&&n-dn(p.start)<12;}).pop();
-    if(openBefore&&(!openBefore.end||dn(openBefore.end)!==n)){var b2=document.createElement("button");b2.textContent="Fin des règles ce jour";b2.onclick=function(){finir(n,openBefore);};ja.appendChild(b2);}
+    if(!futur&&openBefore&&(!openBefore.end||dn(openBefore.end)!==n)){var b2=document.createElement("button");b2.textContent="Fin des règles ce jour";b2.onclick=function(){finir(n,openBefore);};ja.appendChild(b2);}
     chips("cFlux",FLUX,function(x){return dr.flux===x;},function(x){dr.flux=dr.flux===x?"":x;});
     chips("cSympt",SYMPT,function(x){return dr.sympt.indexOf(x)>=0;},function(x){var i=dr.sympt.indexOf(x);if(i>=0)dr.sympt.splice(i,1);else dr.sympt.push(x);});
     chips("cHumeur",HUMEUR,function(x){return dr.humeur===x;},function(x){dr.humeur=dr.humeur===x?"":x;});
     if(document.activeElement!==$("jNote"))$("jNote").value=dr.note;
+    $("jClear").disabled=!data.jours[key];
+    $("jSaved").textContent=data.jours[key]?"Journal enregistré":"";
   }
   function chips(id,list,on,toggle){
     var box=$(id);box.innerHTML="";
     list.forEach(function(x){var b=document.createElement("button");b.className="chip";b.textContent=x;b.setAttribute("aria-pressed",on(x)?"true":"false");
-      b.onclick=function(){toggle(x);b.setAttribute("aria-pressed",on(x)?"true":"false");};box.appendChild(b);});
+      b.onclick=function(){toggle(x);b.setAttribute("aria-pressed",on(x)?"true":"false");enregistrerJournal();};box.appendChild(b);});
   }
 
   /* ---------- Actions ---------- */
@@ -380,6 +399,7 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
     if(p)p.end=end;else data.periodes.push({start:start,end:end});
   }
   function commencer(n){
+    if(n>todayN()){toast("Impossible de noter des règles dans le futur.");return;}
     var c=calc(),key=ds(n);
     var prevOpen=c.P.filter(function(p){return !p.end&&dn(p.start)<n;}).pop();
     if(prevOpen)setPeriode(prevOpen.start,ds(Math.min(dn(prevOpen.start)+c.len-1,n-1)));
@@ -389,18 +409,26 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
   function finir(n,p){
     var c=calc();p=p||c.last;if(!p)return;
     if(n<dn(p.start)){toast("La fin doit être après le début.");return;}
+    if(n>todayN()){toast("Impossible de noter une fin dans le futur.");return;}
     setPeriode(p.start,ds(n));
     commit("Fin des règles notée");
   }
-  $("jNote").addEventListener("input",function(){if(state.draft)state.draft.note=this.value;});
-  $("jSave").onclick=function(){
+  var noteTimer=null;
+  function enregistrerJournal(){
+    clearTimeout(noteTimer);noteTimer=null;
     var dr=state.draft;if(!dr)return;
     var note=dr.note.trim();
-    if(!dr.flux&&!dr.sympt.length&&!dr.humeur&&!note){delete data.jours[dr.key];commit("Journal vidé");return;}
-    data.jours[dr.key]={flux:dr.flux,symptomes:dr.sympt.slice(),humeur:dr.humeur,note:note};
-    commit("Journal enregistré");
-  };
-  $("jClear").onclick=function(){if(!state.draft)return;delete data.jours[state.draft.key];state.draft=null;commit("Jour effacé");};
+    if(!dr.flux&&!dr.sympt.length&&!dr.humeur&&!note)delete data.jours[dr.key];
+    else data.jours[dr.key]={flux:dr.flux,symptomes:dr.sympt.slice(),humeur:dr.humeur,note:note};
+    commit();
+  }
+  $("jNote").addEventListener("input",function(){
+    if(!state.draft)return;
+    state.draft.note=this.value;$("jSaved").textContent="…";
+    clearTimeout(noteTimer);noteTimer=setTimeout(enregistrerJournal,700);
+  });
+  $("jNote").addEventListener("blur",function(){if(noteTimer)enregistrerJournal();});
+  $("jClear").onclick=function(){if(!state.draft)return;clearTimeout(noteTimer);noteTimer=null;delete data.jours[state.draft.key];state.draft=null;commit("Jour effacé");};
   $("rSave").onclick=function(){
     data.reglages={
       prenom:$("rPrenom").value.trim(),
@@ -414,11 +442,20 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
   };
   $("prev").onclick=function(){var v=state.vue;v.m--;if(v.m<0){v.m=11;v.y--;}render();};
   $("nextM").onclick=function(){var v=state.vue;v.m++;if(v.m>11){v.m=0;v.y++;}render();};
+  $("goToday").onclick=function(){var d=new Date();state.vue={y:d.getFullYear(),m:d.getMonth()};state.sel=todayN();state.draft=null;render();};
 
   /* ---------- Sauvegarde / restauration ---------- */
   $("exportBtn").onclick=function(){
-    var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
-    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="calendrier-lune-"+ds(todayN())+".json";
+    var nom="calendrier-lune-"+ds(todayN())+".json", texte=JSON.stringify(data,null,2);
+    try{
+      var fichier=new File([texte],nom,{type:"application/json"});
+      if(navigator.canShare&&navigator.canShare({files:[fichier]})){
+        navigator.share({files:[fichier],title:"Sauvegarde Calendrier Lune"}).then(function(){toast("Sauvegarde partagée");},function(){});
+        return;
+      }
+    }catch(e){}
+    var blob=new Blob([texte],{type:"application/json"});
+    var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=nom;
     document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1000);
     toast("Sauvegarde téléchargée");
   };
@@ -438,7 +475,14 @@ details summary{cursor:pointer;font-family:var(--display);font-weight:700}
   };
 
   /* ---------- Changement de jour ---------- */
-  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible")render();});
+  var dernierJour=todayN();
+  function nouveauJour(){
+    var t=todayN();if(t===dernierJour)return;
+    if(state.sel===dernierJour){state.sel=t;state.draft=null;}
+    var d=new Date();state.vue={y:d.getFullYear(),m:d.getMonth()};
+    dernierJour=t;
+  }
+  document.addEventListener("visibilitychange",function(){if(document.visibilityState==="visible"){nouveauJour();render();}});
 
   if(!stockageOk)banner("Le stockage du navigateur est indisponible (navigation privée ?). Ouvre la page dans un onglet normal.");
   render();
